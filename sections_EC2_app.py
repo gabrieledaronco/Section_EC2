@@ -12,44 +12,45 @@ from math import pi
 st.header("Reinforced Concrete Sections")
 st.subheader("Rectangular sections")
 
-col1, col2 =st.columns(2)
+col1_3, col2_3 =st.columns(2)
 tab1, tab2, tab3 = st.tabs(["Geometry","M-N Results", "Cracking"])
 
 st.sidebar.subheader("Concrete")
 concrete = st.sidebar.text_input("Concrete grade", value="C25/30")
-c_fc = st.sidebar.number_input("fc [MPa]", value=25)
-c_fct = st.sidebar.number_input("fct [MPa]", value=2)
-c_E = st.sidebar.number_input("fct [MPa]", value=24000)
+c_fc = st.sidebar.number_input("fck [MPa]", value=25)
+c_fct = st.sidebar.number_input("fctk [MPa]", value=2.6)
+c_E = st.sidebar.number_input("E [MPa]", value=31476)
 
 st.sidebar.subheader("Steel Rebar")
 concrete = st.sidebar.text_input("Steel grade",value = "500B")
-s_fy = st.sidebar.number_input("fc [MPa]", value=500)
+s_fy = st.sidebar.number_input("fyk [MPa]", value=500)
 
 concrete = sm.create_concrete(fc=c_fc,fc_t=c_fct,E=c_E)
 steel_rebar=sm.create_steelbar(fy=s_fy,gamma_r=1.15)
 
 st.sidebar.subheader("Section Geometry")
 type = st.sidebar.text_input("Section Type", value="Rectangular")
-s_h = st.sidebar.number_input("height [mm]", value=900)
-s_b = st.sidebar.number_input("width [mm]", value=600)
+s_h = st.sidebar.number_input("height [mm]", value=500)
+s_b = st.sidebar.number_input("width [mm]", value=500)
 
 st.sidebar.subheader("Reinforcement Bars")
-t_diameter= st.sidebar.number_input("Top diameter [mm]")
-t_nr_bars= st.sidebar.number_input("Top number of bars", format="%i" )
-b_diameter= st.sidebar.number_input("Bottom diameter [mm]")
-b_nr_bars= st.sidebar.number_input("Bottom number of bars", format="%i")
-l_diameter= st.sidebar.number_input("Left diameter [mm]")
-l_nr_bars= st.sidebar.number_input("Left number of bars", format="%i" )
-r_diameter= st.sidebar.number_input("Right diameter [mm]")
-r_nr_bars= st.sidebar.number_input("Right number of bars", format="%i" )
-cover = st.sidebar.number_input("Cover [mm]")
+t_diameter= st.sidebar.number_input("Top diameter [mm]",value=25)
+t_nr_bars= st.sidebar.number_input("Top number of bars", value=4 )
+b_diameter= st.sidebar.number_input("Bottom diameter [mm]",value=25)
+b_nr_bars= st.sidebar.number_input("Bottom number of bars", value=4)
+l_diameter= st.sidebar.number_input("Left diameter [mm]",value=25)
+l_nr_bars= st.sidebar.number_input("Left number of bars", value=2 )+2
+r_diameter= st.sidebar.number_input("Right diameter [mm]",value=25)
+r_nr_bars= st.sidebar.number_input("Right number of bars", value=2 )+2
+cover = st.sidebar.number_input("Cover [mm]", value=50)
 
 st.sidebar.subheader("Acions")
-n_action= st.sidebar.number_input("ULS Axial_force [kN]")
+st.sidebar.caption("Compression is positive")
+st.sidebar.caption("Positive moment produces tension on lower side")
+n_action= st.sidebar.number_input("ULS Axial force [kN]")
 m_action= st.sidebar.number_input("ULS Bending Moment [kNm]")
-sls_n_action= st.sidebar.number_input("SLS Axial_force [kN]")
+sls_n_action= st.sidebar.number_input("SLS Axial force [kN]")
 sls_m_action= st.sidebar.number_input("SLS Bending Moment [kNm]")
-
 
 
 #Define concrete geometry
@@ -73,8 +74,6 @@ conc_geom = sm.add_bars(bars_list=bars_list,conc_geom=conc_geom,mat=steel_rebar)
 conc_section = ConcreteSection(conc_geom)
 
 
-
-
 #Actions
 actions_dict = {"L1":(n_action,m_action),}
 actions=list(actions_dict.values())
@@ -89,7 +88,7 @@ for name,actions in actions_dict.items():
 #Calculate Cracked Section
 cracked_res = conc_section.calculate_cracked_properties(theta=0)
 cracked_stress_res = conc_section.calculate_cracked_stress(
-    cracked_results=cracked_res,n= sls_n_action, m=sls_m_action
+    cracked_results=cracked_res,n= sls_n_action*1e3, m=sls_m_action*1e6
 )
 
 #print N-M curve with actions
@@ -126,16 +125,15 @@ with tab2:
     fig
     for lc,mr in capacity_moments.items():
         st.write(f"The Bending Capacity is equal to {mr.round(1)} kNm")
+        st.write(f"The utilization level is equal to {(actions_dict[lc][1]/mr).round(3)} ")
 
 with tab3:
     fig_2 = Figure()
     ax_2 = fig_2.gca()
     ax_2 = cracked_stress_res.plot_stress()
-
     fig_2=ax_2.get_figure()
-
     temp_fig_2= BytesIO()
     fig_2.savefig(temp_fig_2, format="png")
     st.image(temp_fig_2)
-  
     st.write(f"Depth of neutral axis is equal to {cracked_res.d_nc:.2f} mm")
+
