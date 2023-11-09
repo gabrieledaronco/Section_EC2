@@ -6,10 +6,11 @@ from io import BytesIO
 import numpy as np
 ## Import analysis section
 from concreteproperties.concrete_section import ConcreteSection
+from concreteproperties.results import MomentInteractionResults
 
 
 st.header("Reinforced Concrete Sections")
-st.subheader("Rectangular sections")
+st.subheader("Rectangular sections - Uniaxial bending")
 
 col1_3, col2_3 =st.columns(2)
 
@@ -49,11 +50,11 @@ with st.sidebar:
         st.caption("Compression is positive")
         st.caption("Positive moment produces tension on lower side")
         st.subheader("ULS")
-        n_action= st.number_input("ULS Axial force [kN]")
-        m_action= st.number_input("ULS Bending Moment [kNm]")
+        n_action= st.number_input("ULS Axial force [kN]",value=200.0)
+        m_action= st.number_input("ULS Bending Moment [kNm]",value=500.0)
         st.subheader("SLS")
-        sls_n_action= st.number_input("SLS Axial force [kN]")
-        sls_m_action= st.number_input("SLS Bending Moment [kNm]")
+        sls_n_action= st.number_input("SLS Axial force [kN]",value=100.0)
+        sls_m_action= st.number_input("SLS Bending Moment [kNm]",value=300.0)
 
 #Define materials
 concrete = sm.create_concrete(fc=c_fc,fc_t=c_fct,E=c_E)
@@ -103,11 +104,14 @@ m_n_0=conc_section.moment_interaction_diagram(theta=0)
 m_n_180=conc_section.moment_interaction_diagram(theta=np.pi)
 
 
-m_n_0_list=m_n_0.get_results_lists("m_xy")
-m_n_180_list=m_n_180.get_results_lists("m_xy")
-m_n_180_array = np.array(m_n_180_list)
-m_n_0_array = np.array(m_n_0_list)
+# m_n_0_list=m_n_0.get_results_lists("m_xy")
+# m_n_180_list=m_n_180.get_results_lists("m_xy")
+# m_n_180_array = np.array(m_n_180_list)
+# m_n_0_array = np.array(m_n_0_list)
+
 #m_n_array =np.array(m_n_list)
+
+
 
 #Tabs display:
 
@@ -121,27 +125,43 @@ with tab1:
     fig.savefig(temp_fig, format="png")
     st.image(temp_fig)
 
+    
 with tab2:
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(name= "Section Capacity",
-                             y=m_n_0_array[1]/1e6, 
-                             x=m_n_0_array[0]/1e3,
-                             line={'color': 'DodgerBlue','width': 2,})
-                             )
-    fig.add_trace(go.Scatter(y=-1*m_n_180_array[1]/1e6, 
-                             x=m_n_180_array[0]/1e3,
-                             line={'color': 'DodgerBlue','width': 2,},
-                             showlegend=False)
-                             )
-    fig.add_trace(go.Scatter(name= "External action",
-                             x=actions_ordered[0],
-                             y=actions_ordered[1], 
-                             mode="markers"))
-    fig.layout.width = 800
-    fig.layout.height = 800
-    fig.layout.xaxis.title = "Axial Force (kN)"
-    fig.layout.yaxis.title = "Bending Moment (kNm)"
-    fig
+    # fig = go.Figure()
+    # fig.add_trace(go.Scatter(name= "Section Capacity",
+    #                          y=m_n_0_array[1]/1e6, 
+    #                          x=m_n_0_array[0]/1e3,
+    #                          line={'color': 'DodgerBlue','width': 2,})
+    #                          )
+    # fig.add_trace(go.Scatter(y=-1*m_n_180_array[1]/1e6, 
+    #                          x=m_n_180_array[0]/1e3,
+    #                          line={'color': 'DodgerBlue','width': 2,},
+    #                          showlegend=False)
+    #                          )
+    # fig.add_trace(go.Scatter(name= "External action",
+    #                          x=actions_ordered[0],
+    #                          y=actions_ordered[1], 
+    #                          mode="markers"))
+    # fig.layout.width = 800
+    # fig.layout.height = 800
+    # fig.layout.xaxis.title = "Axial Force (kN)"
+    # fig.layout.yaxis.title = "Bending Moment (kNm)"
+    # fig
+    
+    fig_2 = Figure()
+    ax_2 = fig_2.gca()
+    ax_2 = MomentInteractionResults.plot_multiple_diagrams(
+    moment_interaction_results=[m_n_0, m_n_180],
+    labels=["Positive", "Negative"],
+    fmt="-",
+    )
+    ax_2.scatter(x=actions_ordered[1], y=actions_ordered[0], color = 'black')
+    ax_2.legend(["Positive", "Negative","Actions"])
+    fig_2=ax_2.get_figure()
+    temp_fig_2= BytesIO()
+    fig_2.savefig(temp_fig_2, format="png")
+    st.image(temp_fig_2)
+
     for lc,mr in capacity_moments.items():
         st.write(f"The Bending Capacity is equal to {mr.round(1)} kNm")
         st.write(f"The utilization level is equal to {(actions_dict[lc][1]/mr).round(3)} ")
