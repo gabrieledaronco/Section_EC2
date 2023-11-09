@@ -6,52 +6,58 @@ from io import BytesIO
 import numpy as np
 ## Import analysis section
 from concreteproperties.concrete_section import ConcreteSection
-from math import pi
 
 
 st.header("Reinforced Concrete Sections")
 st.subheader("Rectangular sections")
 
 col1_3, col2_3 =st.columns(2)
+
 tab1, tab2, tab3 = st.tabs(["Geometry","M-N Results", "Cracking"])
 
-st.sidebar.subheader("Concrete")
-concrete = st.sidebar.text_input("Concrete grade", value="C25/30")
-c_fc = st.sidebar.number_input("fck [MPa]", value=25)
-c_fct = st.sidebar.number_input("fctk [MPa]", value=2.6)
-c_E = st.sidebar.number_input("E [MPa]", value=31476)
+with st.sidebar:
+    side_tab1, side_tab2, side_tab3 = st.tabs(["Materials","Geometry", "Actions"])
+    with side_tab1:
+        st.subheader("Concrete")
+        concrete = st.text_input("Concrete grade", value="C25/30")
+        c_fc = st.number_input("fck [MPa]", value=25)
+        c_fct = st.number_input("fctk [MPa]", value=2.6)
+        c_E = st.number_input("E [MPa]", value=31476)
 
-st.sidebar.subheader("Steel Rebar")
-concrete = st.sidebar.text_input("Steel grade",value = "500B")
-s_fy = st.sidebar.number_input("fyk [MPa]", value=500)
+        st.subheader("Steel Rebar")
+        concrete = st.text_input("Steel grade",value = "500B")
+        s_fy = st.number_input("fyk [MPa]", value=500)
+    
+    with side_tab2:
+        st.subheader("Section Geometry")
+        type = st.text_input("Section Type", value="Rectangular")
+        s_h = st.number_input("height [mm]", value=500)
+        s_b = st.number_input("width [mm]", value=500)
 
+        st.subheader("Reinforcement Bars")
+        t_diameter= st.number_input("Top diameter [mm]",value=25)
+        t_nr_bars= st.number_input("Top number of bars", value=4 )
+        b_diameter= st.number_input("Bottom diameter [mm]",value=25)
+        b_nr_bars= st.number_input("Bottom number of bars", value=4)
+        l_diameter= st.number_input("Left diameter [mm]",value=25)
+        l_nr_bars= st.number_input("Left number of bars", value=2 )+2
+        r_diameter= st.number_input("Right diameter [mm]",value=25)
+        r_nr_bars= st.number_input("Right number of bars", value=2 )+2
+        cover = st.number_input("Cover [mm]", value=50)
+
+    with side_tab3:
+        st.caption("Compression is positive")
+        st.caption("Positive moment produces tension on lower side")
+        st.subheader("ULS")
+        n_action= st.number_input("ULS Axial force [kN]")
+        m_action= st.number_input("ULS Bending Moment [kNm]")
+        st.subheader("SLS")
+        sls_n_action= st.number_input("SLS Axial force [kN]")
+        sls_m_action= st.number_input("SLS Bending Moment [kNm]")
+
+#Define materials
 concrete = sm.create_concrete(fc=c_fc,fc_t=c_fct,E=c_E)
 steel_rebar=sm.create_steelbar(fy=s_fy,gamma_r=1.15)
-
-st.sidebar.subheader("Section Geometry")
-type = st.sidebar.text_input("Section Type", value="Rectangular")
-s_h = st.sidebar.number_input("height [mm]", value=500)
-s_b = st.sidebar.number_input("width [mm]", value=500)
-
-st.sidebar.subheader("Reinforcement Bars")
-t_diameter= st.sidebar.number_input("Top diameter [mm]",value=25)
-t_nr_bars= st.sidebar.number_input("Top number of bars", value=4 )
-b_diameter= st.sidebar.number_input("Bottom diameter [mm]",value=25)
-b_nr_bars= st.sidebar.number_input("Bottom number of bars", value=4)
-l_diameter= st.sidebar.number_input("Left diameter [mm]",value=25)
-l_nr_bars= st.sidebar.number_input("Left number of bars", value=2 )+2
-r_diameter= st.sidebar.number_input("Right diameter [mm]",value=25)
-r_nr_bars= st.sidebar.number_input("Right number of bars", value=2 )+2
-cover = st.sidebar.number_input("Cover [mm]", value=50)
-
-st.sidebar.subheader("Acions")
-st.sidebar.caption("Compression is positive")
-st.sidebar.caption("Positive moment produces tension on lower side")
-n_action= st.sidebar.number_input("ULS Axial force [kN]")
-m_action= st.sidebar.number_input("ULS Bending Moment [kNm]")
-sls_n_action= st.sidebar.number_input("SLS Axial force [kN]")
-sls_m_action= st.sidebar.number_input("SLS Bending Moment [kNm]")
-
 
 #Define concrete geometry
 conc_geom = sm.def_geom(height=s_h,width=s_b, mat=concrete)
@@ -92,15 +98,16 @@ cracked_stress_res = conc_section.calculate_cracked_stress(
 )
 
 #print N-M curve with actions
-m_n=conc_section.moment_interaction_diagram(theta=0)
-m_n_list=m_n.get_results_lists("m_xy")
-# m_n_180=conc_section.moment_interaction_diagram(theta=pi)
-# m_n_0_list=m_n_0.get_results_lists("m_xy")
-# m_n_180_list=m_n_180.get_results_lists("m_xy")
-# m_n_list_n = m_n_0_list[0]+ m_n_180_list[0]
-# m_n_list_m = m_n_0_list[1]+ m_n_180_list[1]
-# m_n_list= (m_n_list_n,m_n_list_m)
-m_n_array =np.array(m_n_list)
+m_n_0=conc_section.moment_interaction_diagram(theta=0)
+#m_n_list=m_n.get_results_lists("m_xy")
+m_n_180=conc_section.moment_interaction_diagram(theta=np.pi)
+
+
+m_n_0_list=m_n_0.get_results_lists("m_xy")
+m_n_180_list=m_n_180.get_results_lists("m_xy")
+m_n_180_array = np.array(m_n_180_list)
+m_n_0_array = np.array(m_n_0_list)
+#m_n_array =np.array(m_n_list)
 
 #Tabs display:
 
@@ -116,8 +123,20 @@ with tab1:
 
 with tab2:
     fig = go.Figure()
-    fig.add_trace(go.Scatter(name= "Section Capacity",y=m_n_array[1]/1e6, x=m_n_array[0]/1e3))
-    fig.add_trace(go.Scatter(name= "External action",x=actions_ordered[0], y=actions_ordered[1], mode="markers"))
+    fig.add_trace(go.Scatter(name= "Section Capacity",
+                             y=m_n_0_array[1]/1e6, 
+                             x=m_n_0_array[0]/1e3,
+                             line={'color': 'DodgerBlue','width': 2,})
+                             )
+    fig.add_trace(go.Scatter(y=-1*m_n_180_array[1]/1e6, 
+                             x=m_n_180_array[0]/1e3,
+                             line={'color': 'DodgerBlue','width': 2,},
+                             showlegend=False)
+                             )
+    fig.add_trace(go.Scatter(name= "External action",
+                             x=actions_ordered[0],
+                             y=actions_ordered[1], 
+                             mode="markers"))
     fig.layout.width = 800
     fig.layout.height = 800
     fig.layout.xaxis.title = "Axial Force (kN)"
