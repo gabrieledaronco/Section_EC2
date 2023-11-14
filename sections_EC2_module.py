@@ -1,6 +1,7 @@
 #General import
 from math import pi
 import numpy as np
+import pandas as pd
 
 # Import stress/strain profiles
 from concreteproperties.stress_strain_profile import (
@@ -13,10 +14,10 @@ from concreteproperties.stress_strain_profile import (
 from concreteproperties.material import Concrete, SteelBar
 
 ## Import geometry functions for creating rectangular sections
-from sectionproperties.pre.library.concrete_sections import concrete_rectangular_section
+from sectionproperties.pre.library.concrete_sections import concrete_rectangular_section, concrete_circular_section
 from sectionproperties.pre.geometry import Geometry, CompoundGeometry
 from sectionproperties.pre.library import primitive_sections
-from sectionproperties.pre.library.primitive_sections import rectangular_section
+from sectionproperties.pre.library.primitive_sections import rectangular_section, circular_section
 from concreteproperties.pre import add_bar, add_bar_rectangular_array
 
 ## Import analysis section
@@ -82,8 +83,13 @@ def create_steelbar(fy: float, gamma_r: float=1.15):
     return steel
 
 ## Define Concrete rectangular section
-def def_geom(height:float, width:float, mat:Concrete)-> Geometry:
+def def_r_geom(height:float, width:float, mat:Concrete)-> Geometry:
     conc_geom = rectangular_section(b=width,d=height, material= mat).align_center()
+
+    return conc_geom
+
+def def_c_geom(diameter:float, mat:Concrete)-> Geometry:
+    conc_geom = circular_section(d=diameter, n=36, material= mat).align_center()
 
     return conc_geom
 
@@ -186,4 +192,24 @@ def add_bars(bars_list:list[list[float]], conc_geom:Geometry, mat:SteelBar)->Com
    
     return conc_geom
 
-
+def concrete_EC2(fck:float)->pd.Series:
+    """
+    return a series with the poperties of Concrete according to EC2
+    the results are in MPa
+    """
+    fcm = fck+8
+    fctm = (fck<=50)*(0.3*fck**(2/3))+(fck > 50)*(2.12*np.log(1+fcm/10))
+    concrete_serie = pd.Series(data={
+        "fck":fck,
+        "fcm": fcm,
+        "fctm": fctm,
+        "fctk_05": 0.7*fctm,
+        "fctk_95": 1.3*fctm,
+        "Ecm": 22*(fcm/10)**0.3*1000,
+        "eps_c1": min([0.7*fcm**0.31,2.8]),
+        "eps_cu1": 3.5 if fck < 50 else 2.8 +27*((98-fcm)/100)**4,
+        "eps_c2": 2.0 if fck < 50 else 2+0.085*(fck-50)**0.53,
+        "eps_cu2":3.5 if fck < 50 else 2.6+35*((90-fck)/100)**4,
+    }
+    )
+    return concrete_serie
