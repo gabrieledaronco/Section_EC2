@@ -22,6 +22,7 @@ with st.sidebar:
         st.subheader("Concrete")
         concrete_grade = st.selectbox("Concrete Grade",("C25/30",
                                      "C30/37",
+                                     "C35/45",
                                      "C40/45",
                                      "C40/50",
                                      "C50/60",
@@ -82,6 +83,44 @@ with st.sidebar:
         sls_n_action= st.number_input("SLS Axial force [kN]",value=100.0)
         sls_m_action= st.number_input("SLS Bending Moment [kNm]",value=300.0)
 
+        if "df" not in st.session_state:
+            st.session_state.df = pd.DataFrame(columns=["Sepal Length", 
+                                                "Sepal Width", 
+                                                "Petal Length", 
+                                                "Petal Width", 
+                                                "Variety"])
+
+        st.subheader("Add Record")
+
+        num_new_rows = st.sidebar.number_input("Add Rows",1,50)
+        ncol = st.session_state.df.shape[1]  # col count
+        rw = -1
+
+        with st.form(key="add form", clear_on_submit= True):
+            cols = st.columns(ncol)
+            rwdta = []
+
+            for i in range(ncol):
+                rwdta.append(cols[i].text_input(st.session_state.df.columns[i]))
+
+        # you can insert code for a list comprehension here to change the data (rwdta) 
+        # values into integer / float, if required
+
+            if st.form_submit_button("Add"):
+                if st.session_state.df.shape[0] == num_new_rows:
+                    st.error("Add row limit reached. Cant add any more records..")  
+                else:
+                    rw = st.session_state.df.shape[0] + 1
+                    st.info(f"Row: {rw} / {num_new_rows} added")
+                    st.session_state.df.loc[rw] = rwdta
+
+                    if st.session_state.df.shape[0] == num_new_rows:
+                     st.error("Add row limit reached...")
+
+        st.dataframe(st.session_state.df)
+
+    
+
 
 #Define materials
 concrete = sm.create_concrete(fc=c_fc,fc_t=c_fct,E=c_E)
@@ -124,11 +163,17 @@ actions_ordered=list(zip(*actions))
 #Caclutate Mr for each N (CREARE TABELLA PER METTERE I VALORI)
 capacity_moments={}
 for name,actions in actions_dict.items():
-    mr = conc_section.ultimate_bending_capacity(theta=0, n= actions[0]*1e3)
+    if actions[1]>0:
+        mr = conc_section.ultimate_bending_capacity(theta=0, n= actions[0]*1e3)
+    else:
+        mr = conc_section.ultimate_bending_capacity(theta=np.pi, n= actions[0]*1e3)
     capacity_moments.update({name:mr.m_xy/1e6})
 
 #Calculate Cracked Section
-cracked_res = conc_section.calculate_cracked_properties(theta=0)
+if sls_m_action >0:
+    cracked_res = conc_section.calculate_cracked_properties(theta=0)
+else:
+    cracked_res = conc_section.calculate_cracked_properties(theta=np.pi)
 cracked_stress_res = conc_section.calculate_cracked_stress(
     cracked_results=cracked_res,n= sls_n_action*1e3, m=sls_m_action*1e6
 )
@@ -168,7 +213,7 @@ with tab2:
 
     for lc,mr in capacity_moments.items():
         st.write(f"The Bending Capacity is equal to {mr.round(1)} kNm")
-        st.write(f"The utilization level is equal to {(actions_dict[lc][1]/mr).round(3)} ")
+        st.write(f"The utilization level is equal to {abs((actions_dict[lc][1]/mr).round(3))} ")
 
 
 with tab3:
@@ -181,3 +226,5 @@ with tab3:
     st.image(temp_fig_2)
     st.write(f"Depth of neutral axis is equal to {cracked_res.d_nc:.2f} mm")
 
+with tab4:
+    ""
