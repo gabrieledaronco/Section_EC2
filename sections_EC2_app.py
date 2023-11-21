@@ -166,10 +166,6 @@ cracked_stress_res = conc_section.calculate_cracked_stress(
 m_n_0=conc_section.moment_interaction_diagram(theta=0)
 m_n_180=conc_section.moment_interaction_diagram(theta=np.pi)
 
-#print Moment curvature
-m_c_0 = conc_section.moment_curvature_analysis(theta=0, n=actions[0]*1e3)
-m_c_180 = conc_section.moment_curvature_analysis(theta=np.pi, n=actions[0]*1e3)
-
 #Tabs display:
 
 with tab1:
@@ -215,14 +211,23 @@ with tab3:
     st.write(f"Depth of neutral axis is equal to {cracked_res.d_nc:.2f} mm")
 
 with tab4:
-    fig_4 = Figure()
-    ax_4 = fig_4.gca()
-    ax_4 = MomentCurvatureResults.plot_multiple_results(
-    moment_curvature_results=[m_c_0, m_c_180],
-    labels=["Positive", "Negative"],
-    fmt="-",
-    )
-    fig_4=ax_4.get_figure()
-    temp_fig_4= BytesIO()
-    fig_4.savefig(temp_fig_4, format="png")
-    st.image(temp_fig_4)
+
+    option = st.selectbox(
+    'Moment-curvature calculation?',
+    ('NO', 'YES'))
+    if option == "YES":
+        #print Moment curvature
+        m_c_0 = conc_section.moment_curvature_analysis(theta=0, n=actions[0]*1e3)
+        m_c_180 = conc_section.moment_curvature_analysis(theta=np.pi, n=actions[0]*1e3)
+
+        fig_4 = Figure()
+        ax_4 = fig_4.gca()
+        ax_4 = MomentCurvatureResults.plot_multiple_results(
+        moment_curvature_results=[m_c_0, m_c_180],
+        labels=["Positive", "Negative"],
+        fmt="-",
+        )
+        fig_4=ax_4.get_figure()
+        temp_fig_4= BytesIO()
+        fig_4.savefig(temp_fig_4, format="png")
+        st.image(temp_fig_4)
