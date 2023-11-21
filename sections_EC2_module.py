@@ -77,7 +77,7 @@ def create_concrete(
     concrete = Concrete(
         name=f"{fc} MPa Concrete",
         density = 2.4e-5, # Assumed, only used for self-weight
-        stress_strain_profile=ec2_non_linear,
+        stress_strain_profile=linear_no_tension,
         ultimate_stress_strain_profile= stress_block,
         flexural_tensile_strength=fc_t, 
         colour="lightgrey",
@@ -120,7 +120,7 @@ def def_c_geom(diameter:float, mat:Concrete)-> Geometry:
 
 def rect_bar_list(bars_df:pd.Series,
              height:float,
-             width:float
+             width:float,
              )->list[list[float]]:
     """
     retunrs a list[list] with the coordinates and the anrea of the reinf bars to be used
@@ -139,7 +139,7 @@ def rect_bar_list(bars_df:pd.Series,
     elif bars_df.name == "Top layer 2":
         s = (width -2*cover)/(nr_bars-1)
         x = -width/2+cover
-        y = height/2-cover-diam
+        y = height/2-cover-diam*1.2
     elif bars_df.name == "Bottom layer 1":
         s = (width -2*cover)/(nr_bars-1)
         x = -width/2+cover
@@ -147,7 +147,7 @@ def rect_bar_list(bars_df:pd.Series,
     elif bars_df.name == "Bottom layer 2":
         s = (width -2*cover)/(nr_bars-1)
         x = -width/2+cover
-        y = -height/2+cover+diam
+        y = -height/2+cover+diam*1.2
     elif bars_df.name == "Side layer 1":
         nr_bars=nr_bars+2
         s = (height -2*cover)/(nr_bars-1)
@@ -156,7 +156,7 @@ def rect_bar_list(bars_df:pd.Series,
     elif bars_df.name == "Side layer 2":
         nr_bars=nr_bars+2
         s = (height -2*cover)/(nr_bars-1)
-        x = -width/2+cover+diam
+        x = -width/2+cover+diam*1.2
         y = -height/2+cover
 
     for i in range(nr_bars):
@@ -179,16 +179,37 @@ def rect_bar_list(bars_df:pd.Series,
     
     return bar_list
 
-def add_bars(bars_list:list[list[float]], conc_geom:Geometry, mat:SteelBar)->CompoundGeometry:
-    for rebar in bars_list:
-        area, x, y = rebar
-        conc_geom = add_bar(geometry=conc_geom, 
-                                 area=area,
-                                 material=mat, 
-                                 x=x,
-                                 y=y
-                                 )
-   
+
+def add_bars(bars_df:pd.Series, conc_geom:Geometry, mat:SteelBar)->CompoundGeometry:
+    """
+    add bars from a list[list]
+    the side bars are located in rows 4 and 5
+    """
+    for i in range(len(bars_df)):
+        if i==4 or i==5:
+            for rebar in bars_df.iloc[i]:
+                area, x, y = rebar
+                conc_geom = add_bar(geometry=conc_geom, 
+                                        area=area,
+                                        material=mat, 
+                                        x=x,
+                                        y=y
+                                        )
+                conc_geom = add_bar(geometry=conc_geom, 
+                                        area=area,
+                                        material=mat, 
+                                        x=-x,
+                                        y=y
+                                        )
+        else:
+            for rebar in bars_df.iloc[i]:
+                area, x, y = rebar
+                conc_geom = add_bar(geometry=conc_geom, 
+                                        area=area,
+                                        material=mat, 
+                                        x=x,
+                                        y=y
+                                        )
     return conc_geom
 
 def concrete_EC2(fck:float)->pd.Series:

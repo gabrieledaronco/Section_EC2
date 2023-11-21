@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 ## Import analysis section
 from concreteproperties.concrete_section import ConcreteSection
-from concreteproperties.results import MomentInteractionResults
+from concreteproperties.results import MomentInteractionResults, MomentCurvatureResults
 from concreteproperties.pre import add_bar_circular_array
 from sectionproperties.pre.library.primitive_sections import rectangular_section, circular_section
 
@@ -121,11 +121,11 @@ if section_type == "Rectangular":
                                    args=(s_h,s_b)
                                 )
     
-    for bar in range(len(bars_serie)):
-        conc_geom = sm.add_bars(bars_list=bars_serie.iloc[bar],
-                                    conc_geom=conc_geom,
-                                    mat=steel_rebar)
-            
+    conc_geom = sm.add_bars(bars_df=bars_serie,
+                                     conc_geom=conc_geom,
+                                     mat=steel_rebar)
+
+
 elif section_type == "Circular":
     conc_geom = sm.def_c_geom(diameter=s_d, mat=concrete)
     conc_geom = add_bar_circular_array(
@@ -166,6 +166,10 @@ cracked_stress_res = conc_section.calculate_cracked_stress(
 m_n_0=conc_section.moment_interaction_diagram(theta=0)
 m_n_180=conc_section.moment_interaction_diagram(theta=np.pi)
 
+#print Moment curvature
+m_c_0 = conc_section.moment_curvature_analysis(theta=0, n=actions[0]*1e3)
+m_c_180 = conc_section.moment_curvature_analysis(theta=np.pi, n=actions[0]*1e3)
+
 #Tabs display:
 
 with tab1:
@@ -201,14 +205,24 @@ with tab2:
 
 
 with tab3:
-    fig_2 = Figure()
-    ax_2 = fig_2.gca()
-    ax_2 = cracked_stress_res.plot_stress()
-    fig_2=ax_2.get_figure()
-    temp_fig_2= BytesIO()
-    fig_2.savefig(temp_fig_2, format="png")
-    st.image(temp_fig_2)
+    fig_3 = Figure()
+    ax_3 = fig_3.gca()
+    ax_3 = cracked_stress_res.plot_stress()
+    fig_3=ax_3.get_figure()
+    temp_fig_3= BytesIO()
+    fig_3.savefig(temp_fig_3, format="png")
+    st.image(temp_fig_3)
     st.write(f"Depth of neutral axis is equal to {cracked_res.d_nc:.2f} mm")
 
 with tab4:
-    ""
+    fig_4 = Figure()
+    ax_4 = fig_4.gca()
+    ax_4 = MomentCurvatureResults.plot_multiple_results(
+    moment_curvature_results=[m_c_0, m_c_180],
+    labels=["Positive", "Negative"],
+    fmt="-",
+    )
+    fig_4=ax_4.get_figure()
+    temp_fig_4= BytesIO()
+    fig_4.savefig(temp_fig_4, format="png")
+    st.image(temp_fig_4)
