@@ -61,12 +61,22 @@ with st.sidebar:
 
         st.subheader("Reinforcement Bars")
         if section_type == "Rectangular":
-            t_diameter= st.number_input("Top bars diameter [mm]",value=25)
-            t_nr_bars= st.number_input("Top number of bars", value=4 )
-            b_diameter= st.number_input("Bottom bars diameter [mm]",value=25)
-            b_nr_bars= st.number_input("Bottom number of bars", value=4)
-            s_diameter= st.number_input("Side bars diameter [mm]",value=25)
-            s_nr_bars= st.number_input("Side number of bars", value=2 )+2
+            bars_df = pd.DataFrame(
+                [{"Bars diameter [mm]":25, "Number of bars":4, "Cover [mm]":50},
+                 {"Bars diameter [mm]":25, "Number of bars":4, "Cover [mm]":50},
+                 {"Bars diameter [mm]":25, "Number of bars":4, "Cover [mm]":50},
+                 {"Bars diameter [mm]":25, "Number of bars":4, "Cover [mm]":50},
+                 {"Bars diameter [mm]":25, "Number of bars":2, "Cover [mm]":50},
+                 {"Bars diameter [mm]":25, "Number of bars":2, "Cover [mm]":50},
+                 ], index=["Top layer 1",
+                           "Top layer 2",
+                            "Bottom layer 1",
+                            "Bottom layer 2",
+                            "Side layer 1",
+                            "Side layer 2"]
+            )
+            edited_df = st.data_editor(bars_df)
+        
         elif section_type == "Circular":
             b_diameter= st.number_input("Bars diameter [mm]",value = 25)
             b_nr_bars= st.number_input("Number of bars", value = 10 )
@@ -83,60 +93,30 @@ with st.sidebar:
         sls_n_action= st.number_input("SLS Axial force [kN]",value=100.0)
         sls_m_action= st.number_input("SLS Bending Moment [kNm]",value=300.0)
 
-        if "df" not in st.session_state:
-            st.session_state.df = pd.DataFrame(columns=["Sepal Length", 
-                                                "Sepal Width", 
-                                                "Petal Length", 
-                                                "Petal Width", 
-                                                "Variety"])
-
-        st.subheader("Add Record")
-
-        num_new_rows = st.sidebar.number_input("Add Rows",1,50)
-        ncol = st.session_state.df.shape[1]  # col count
-        rw = -1
-
-        with st.form(key="add form", clear_on_submit= True):
-            cols = st.columns(ncol)
-            rwdta = []
-
-            for i in range(ncol):
-                rwdta.append(cols[i].text_input(st.session_state.df.columns[i]))
-
-        # you can insert code for a list comprehension here to change the data (rwdta) 
-        # values into integer / float, if required
-
-            if st.form_submit_button("Add"):
-                if st.session_state.df.shape[0] == num_new_rows:
-                    st.error("Add row limit reached. Cant add any more records..")  
-                else:
-                    rw = st.session_state.df.shape[0] + 1
-                    st.info(f"Row: {rw} / {num_new_rows} added")
-                    st.session_state.df.loc[rw] = rwdta
-
-                    if st.session_state.df.shape[0] == num_new_rows:
-                     st.error("Add row limit reached...")
-
-        st.dataframe(st.session_state.df)
-
-    
-
 
 #Define materials
-concrete = sm.create_concrete(fc=c_fc,fc_t=c_fct,E=c_E)
+concrete = sm.create_concrete(fc=concrete_serie.fck,
+                              fcm=concrete_serie.fcm,
+                              fc_t=concrete_serie.fctm,
+                              E=concrete_serie.Ecm,
+                              eps_cu1=concrete_serie.eps_cu1,
+                              eps_c1=concrete_serie.eps_c1,
+                              eps_cu2=concrete_serie.eps_cu2,
+                              eps_c2=concrete_serie.eps_c2,
+                              n=concrete_serie.n)
 steel_rebar=sm.create_steelbar(fy=s_fy,gamma_r=1.15)
 
 #Define concrete geometry
 if section_type == "Rectangular":
     conc_geom = sm.def_r_geom(height=s_h,width=s_b, mat=concrete)
-    bars_list = sm.rect_bar_list(top_diameter=t_diameter,
-                                top_nr_bars=int(t_nr_bars),
-                                bottom_diameter=b_diameter,
-                                bottom_nr_bars=int(b_nr_bars),
-                                left_diameter=s_diameter,
-                                left_nr_bars=int(s_nr_bars),
-                                right_diameter=s_diameter,
-                                right_nr_bars=int(s_nr_bars),
+    bars_list = sm.rect_bar_list(top_diameter=edited_df.loc["Top layer 1"]["Bars diameter [mm]"],
+                                top_nr_bars=int(edited_df.loc["Top layer 1"]["Number of bars"]),
+                                bottom_diameter=edited_df.loc["Bottom layer 1"]["Bars diameter [mm]"],
+                                bottom_nr_bars=int(edited_df.loc["Bottom layer 1"]["Number of bars"]),
+                                left_diameter=edited_df.loc["Side layer 1"]["Bars diameter [mm]"],
+                                left_nr_bars=int(edited_df.loc["Side layer 1"]["Number of bars"]+2),
+                                right_diameter=edited_df.loc["Side layer 1"]["Bars diameter [mm]"],
+                                right_nr_bars=int(edited_df.loc["Side layer 1"]["Number of bars"]+2),
                                 height=s_h,
                                 width=s_b,
                                 cover=cover
