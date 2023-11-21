@@ -7,7 +7,9 @@ import pandas as pd
 from concreteproperties.stress_strain_profile import (
     ConcreteLinearNoTension, 
     RectangularStressBlock, 
-    SteelElasticPlastic
+    SteelElasticPlastic,
+    EurocodeNonLinear,
+    EurocodeParabolicUltimate
 )
 
 ## Import materials
@@ -27,35 +29,56 @@ from concreteproperties.concrete_section import ConcreteSection
 
 def create_concrete(
         fc: float,
+        fcm: float,
         fc_t:float, 
         E: float,
+        eps_cu1: float,
+        eps_c1: float,
+        eps_cu2: float,
+        eps_c2: float,
+        n:float,
         gamma_r: float = 1.50, 
-        ult_strain: float=0.0035,
         ):
     """
     Returns a concreteproperties concrete material with values
-    imported., accordin to EC2
+    imported, according to EC2
     """
-    concrete_service = ConcreteLinearNoTension(
+    ec2_non_linear = EurocodeNonLinear(
     elastic_modulus = E,
-    ultimate_strain = ult_strain,
+    ultimate_strain = eps_cu1,
+    compressive_strength = fcm,
+    compressive_strain= eps_c1,
+    tensile_strength= fc_t,
+    tension_softening_stiffness= 10e+3
+    )
+
+    linear_no_tension = ConcreteLinearNoTension(
+    elastic_modulus = E,
+    ultimate_strain = eps_cu1,
     compressive_strength =  fc,
     )
 
     ## Ultimate stress-strain profile
-    concrete_ultimate = RectangularStressBlock(
+    stress_block = RectangularStressBlock(
         compressive_strength=fc,
         alpha= 1/gamma_r, 
         gamma= 0.8, 
-        ultimate_strain=0.0035,
+        ultimate_strain=eps_cu2,
+    )
+
+    ec2_ultimate = EurocodeParabolicUltimate(
+        compressive_strength=fc/gamma_r,
+        compressive_strain= eps_c2,
+        ultimate_strain=eps_cu2,
+        n=n
     )
 
     ## Defining the Concrete material
     concrete = Concrete(
         name=f"{fc} MPa Concrete",
         density = 2.4e-5, # Assumed, only used for self-weight
-        stress_strain_profile=concrete_service,
-        ultimate_stress_strain_profile=concrete_ultimate,
+        stress_strain_profile=ec2_non_linear,
+        ultimate_stress_strain_profile= stress_block,
         flexural_tensile_strength=fc_t, 
         colour="lightgrey",
     )

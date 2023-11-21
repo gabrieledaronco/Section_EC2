@@ -120,8 +120,6 @@ with st.sidebar:
         st.dataframe(st.session_state.df)
 
     
-
-
 #Define materials
 concrete = sm.create_concrete(fc=c_fc,fc_t=c_fct,E=c_E)
 steel_rebar=sm.create_steelbar(fy=s_fy,gamma_r=1.15)
