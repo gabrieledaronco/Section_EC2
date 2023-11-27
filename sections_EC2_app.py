@@ -17,7 +17,7 @@ st.subheader(f"Uniaxial bending")
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["Geometry","M-N Results", "Cracking", "Curvature", "Shear Resistance"])
 
 with st.sidebar:
-    side_tab1, side_tab2, side_tab3 = st.tabs(["Materials","Geometry", "Actions"])
+    side_tab1, side_tab2, side_tab3 ,side_tab4= st.tabs(["Materials","Geometry", "ULS Actions", "SLS Actions"])
     with side_tab1:
         st.subheader("Concrete")
         concrete_grade = st.selectbox("Concrete Grade",("C25/30",
@@ -96,10 +96,22 @@ with st.sidebar:
         st.subheader("ULS")
         n_action= st.number_input("ULS Axial force [kN]",value=200.0)
         m_action= st.number_input("ULS Bending Moment [kNm]",value=500.0)
+        
+        columns_actions = ["Load Case","N [kN]", "M [kNm]", "V [kN]" ]
+        rows_actions = [["LC1",-100,1500,300]]
+        uls_act_df = pd.DataFrame(data=rows_actions, columns=columns_actions)
+        edited_uls_act_df= st.data_editor(uls_act_df, num_rows="dynamic")
+
+        for i in range(len(edited_uls_act_df["Load Case"])):
+            st.write(edited_uls_act_df.loc[i]["N [kN]"])
+
+
+    with side_tab4:
+        st.caption("Compression is positive")
+        st.caption("Positive moment produces tension on lower side")
         st.subheader("SLS")
         sls_n_action= st.number_input("SLS Axial force [kN]",value=100.0)
         sls_m_action= st.number_input("SLS Bending Moment [kNm]",value=300.0)
-
 
 #Define materials
 concrete = sm.create_concrete(fc=concrete_serie.fck,
