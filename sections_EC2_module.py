@@ -21,6 +21,7 @@ from sectionproperties.pre.geometry import Geometry, CompoundGeometry
 from sectionproperties.pre.library import primitive_sections
 from sectionproperties.pre.library.primitive_sections import rectangular_section, circular_section
 from concreteproperties.pre import add_bar, add_bar_rectangular_array
+from concreteproperties.results import StressResult
 
 ## Import analysis section
 from concreteproperties.concrete_section import ConcreteSection
@@ -234,3 +235,54 @@ def concrete_EC2(fck:float)->pd.Series:
     }
     )
     return concrete_serie
+
+def get_stress_df (CrackedStress:StressResult)->pd.DataFrame:
+    """
+    returns a dataframe with the coords of the bars and the stresses
+    """
+    columns = [
+        "Bar No.",
+        "x location [mm]",
+        "y location [mm]",
+        "Area [mm2]",
+        "Stress [MPa]",
+        "Force [kN]",
+        "Lever Arm [mm]",
+        "Moment [kNm]"
+    ]
+
+    forces = []
+    moments_x = []
+    data = []
+    for idx, reinf_geom in enumerate(CrackedStress.lumped_reinforcement_geometries):
+    # get the reinforcement results
+        centroid = reinf_geom.calculate_centroid()
+        area = reinf_geom.calculate_area()
+        stress = CrackedStress.lumped_reinforcement_stresses[idx]
+        strain = CrackedStress.lumped_reinforcement_strains[idx]
+        force, d_x, d_y = CrackedStress.lumped_reinforcement_forces[idx]
+
+    # calculate the moment each bar creates and store the results
+        moment_x = force * d_y
+        forces.append(force)
+        moments_x.append(moment_x)
+
+        data.append([idx+1,
+                    centroid[0],
+                    centroid[1],
+                    round(area,1),
+                    stress.round(1),
+                    (force/1e3).round(1),
+                    d_y.round(1),
+                    (moment_x/1e6).round(1)
+                    ]
+                    )
+    
+    df= pd.DataFrame(data=data, columns=columns)
+    df=df.set_index("Bar No.")
+
+    return df
+
+
+
+

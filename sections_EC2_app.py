@@ -93,25 +93,21 @@ with st.sidebar:
     with side_tab3:
         st.caption("Compression is positive")
         st.caption("Positive moment produces tension on lower side")
-        st.subheader("ULS")
-        n_action= st.number_input("ULS Axial force [kN]",value=200.0)
-        m_action= st.number_input("ULS Bending Moment [kNm]",value=500.0)
-        
+
         columns_actions = ["Load Case","N [kN]", "M [kNm]", "V [kN]" ]
         rows_actions = [["LC1",-100,1500,300]]
         uls_act_df = pd.DataFrame(data=rows_actions, columns=columns_actions)
         edited_uls_act_df= st.data_editor(uls_act_df, num_rows="dynamic")
-
-        for i in range(len(edited_uls_act_df["Load Case"])):
-            st.write(edited_uls_act_df.loc[i]["N [kN]"])
-
+              
 
     with side_tab4:
         st.caption("Compression is positive")
         st.caption("Positive moment produces tension on lower side")
-        st.subheader("SLS")
-        sls_n_action= st.number_input("SLS Axial force [kN]",value=100.0)
-        sls_m_action= st.number_input("SLS Bending Moment [kNm]",value=300.0)
+        columns_sls = ["Load Case","N [kN]", "M [kNm]" ]
+        rows_sls = [["LC1",-100,500]]
+        sls_act_df = pd.DataFrame(data=rows_sls, columns=columns_sls)
+        edited_sls_df= st.data_editor(sls_act_df.set_index("Load Case"))
+
 
 #Define materials
 concrete = sm.create_concrete(fc=concrete_serie.fck,
@@ -152,26 +148,34 @@ conc_section = ConcreteSection(conc_geom)
 
 
 #Actions
-actions_dict = {"L1":(n_action,m_action),}
-actions=list(actions_dict.values())
-actions_ordered=list(zip(*actions))
+n_actions = list(edited_uls_act_df["N [kN]"])
+m_actions = list(edited_uls_act_df["M [kNm]"])
+lc_actions = list(edited_uls_act_df["Load Case"])
 
-#Caclutate Mr for each N (CREARE TABELLA PER METTERE I VALORI)
-capacity_moments={}
-for name,actions in actions_dict.items():
-    if actions[1]>0:
-        mr = conc_section.ultimate_bending_capacity(theta=0, n= actions[0]*1e3)
+
+#Caclutate Mr for each N 
+capacity_list=[]
+for i  in range(len(lc_actions)):
+    if m_actions[i]>0:
+        mr = conc_section.ultimate_bending_capacity(theta=0, n= n_actions[i]*1e3)
     else:
-        mr = conc_section.ultimate_bending_capacity(theta=np.pi, n= actions[0]*1e3)
-    capacity_moments.update({name:mr.m_xy/1e6})
+        mr = conc_section.ultimate_bending_capacity(theta=np.pi, n= n_actions[i]*1e3)
+    capacity_list.append([lc_actions[i], 
+                          n_actions[i], 
+                          m_actions[i],
+                          (mr.m_xy/1e6).round(1), 
+                          abs(m_actions[i]/(mr.m_xy/1e6)).round(3)])
+
 
 #Calculate Cracked Section
-if sls_m_action >0:
+if edited_sls_df.iloc[0][1] >0:
     cracked_res = conc_section.calculate_cracked_properties(theta=0)
 else:
     cracked_res = conc_section.calculate_cracked_properties(theta=np.pi)
 cracked_stress_res = conc_section.calculate_cracked_stress(
-    cracked_results=cracked_res,n= sls_n_action*1e3, m=sls_m_action*1e6
+    cracked_results=cracked_res,
+    n= edited_sls_df.iloc[0][0]*1e3, 
+    m=edited_sls_df.iloc[0][1]*1e6
 )
 
 #print N-M curve with actions
@@ -193,34 +197,49 @@ with tab1:
     
 with tab2:
   
-    fig_2 = Figure()
-    ax_2 = fig_2.gca()
-    ax_2 = MomentInteractionResults.plot_multiple_diagrams(
+    fig = Figure()
+    ax = fig.gca()
+    ax = MomentInteractionResults.plot_multiple_diagrams(
     moment_interaction_results=[m_n_0, m_n_180],
     labels=["Positive", "Negative"],
     fmt="-",
     )
-    ax_2.scatter(x=actions_ordered[1], y=actions_ordered[0], color = 'black')
-    ax_2.legend(["Positive", "Negative","Actions"])
-    fig_2=ax_2.get_figure()
-    temp_fig_2= BytesIO()
-    fig_2.savefig(temp_fig_2, format="png")
-    st.image(temp_fig_2)
+    legend_list = ["Positive", "Negative"] + lc_actions
+    for i in range(len(m_actions)):
+        ax.scatter(x=m_actions[i], y=n_actions[i])
+    for element in legend_list:
+        ax.legend(legend_list)
 
-    for lc,mr in capacity_moments.items():
-        st.write(f"The Bending Capacity is equal to {mr.round(1)} kNm")
-        st.write(f"The utilization level is equal to {abs((actions_dict[lc][1]/mr).round(3))} ")
+
+    fig=ax.get_figure()
+    temp_fig= BytesIO()
+    fig.savefig(temp_fig, format="png")
+    st.image(temp_fig)
+
+    columns_capacity = ["Load Case","Ned [kN]", "Med [kNm]", "Mrd [kN]", "Utilization Level"]
+    capacity_df = pd.DataFrame(data=capacity_list, columns=columns_capacity)
+    # capacity_df = capacity_df.set_index("Load Case")
+    printed_capacity_df= st.dataframe(capacity_df,use_container_width=True)
 
 
 with tab3:
-    fig_3 = Figure()
-    ax_3 = fig_3.gca()
-    ax_3 = cracked_stress_res.plot_stress()
-    fig_3=ax_3.get_figure()
-    temp_fig_3= BytesIO()
-    fig_3.savefig(temp_fig_3, format="png")
-    st.image(temp_fig_3)
+    fig = Figure()
+    ax = fig.gca()
+    ax = cracked_stress_res.plot_stress()
+    fig=ax.get_figure()
+    temp_fig= BytesIO()
+    fig.savefig(temp_fig, format="png")
+    st.image(temp_fig)
+
+    cracked_df = sm.get_stress_df(cracked_stress_res)
+    edited_cracked_df = st.dataframe(cracked_df,use_container_width=True)
+
     st.write(f"Depth of neutral axis is equal to {cracked_res.d_nc:.2f} mm")
+
+
+
+
+
 
 with tab4:
 
@@ -228,18 +247,19 @@ with tab4:
     'Moment-curvature calculation?',
     ('NO', 'YES'))
     if option == "YES":
+        n_action= st.number_input("ULS Axial force [kN]",value=200.0)
         #print Moment curvature
-        m_c_0 = conc_section.moment_curvature_analysis(theta=0, n=actions[0]*1e3)
-        m_c_180 = conc_section.moment_curvature_analysis(theta=np.pi, n=actions[0]*1e3)
+        m_c_0 = conc_section.moment_curvature_analysis(theta=0, n=n_action*1e3)
+        m_c_180 = conc_section.moment_curvature_analysis(theta=np.pi, n=n_action[0]*1e3)
 
-        fig_4 = Figure()
-        ax_4 = fig_4.gca()
-        ax_4 = MomentCurvatureResults.plot_multiple_results(
+        fig = Figure()
+        ax = fig.gca()
+        ax = MomentCurvatureResults.plot_multiple_results(
         moment_curvature_results=[m_c_0, m_c_180],
         labels=["Positive", "Negative"],
         fmt="-",
         )
-        fig_4=ax_4.get_figure()
-        temp_fig_4= BytesIO()
-        fig_4.savefig(temp_fig_4, format="png")
-        st.image(temp_fig_4)
+        fig=ax.get_figure()
+        temp_fig= BytesIO()
+        fig.savefig(temp_fig, format="png")
+        st.image(temp_fig)
