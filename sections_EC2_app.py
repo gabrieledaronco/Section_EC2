@@ -84,7 +84,7 @@ with st.sidebar:
                                  "Area"]
         elif section_type == "Circular":
             b_diameter= st.number_input("Bars diameter [mm]",value = 25)
-            b_nr_bars= st.number_input("Number of bars", value = 10 )
+            b_nr_bars= st.number_input("Number of bars", value = 12 )
             cover = st.number_input("Cover [mm]", value=50)
 
 
@@ -93,7 +93,7 @@ with st.sidebar:
         st.caption("Positive moment produces tension on lower side")
 
         columns_actions = ["Load Case","N [kN]", "M [kNm]", "V [kN]" ]
-        rows_actions = [["LC1",-100,900,300]]
+        rows_actions = [["LC1",-100,900,300],["LC2",-200,750,150]]
         uls_act_df = pd.DataFrame(data=rows_actions, columns=columns_actions)
         edited_uls_act_df= st.data_editor(uls_act_df, num_rows="dynamic")
               
