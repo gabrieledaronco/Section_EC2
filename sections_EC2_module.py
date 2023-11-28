@@ -1,5 +1,5 @@
 #General import
-from math import pi
+from typing import Optional
 import numpy as np
 import pandas as pd
 
@@ -25,6 +25,9 @@ from concreteproperties.results import StressResult
 
 ## Import analysis section
 from concreteproperties.concrete_section import ConcreteSection
+from concreteproperties.results import MomentInteractionResults, MomentCurvatureResults
+from concreteproperties.pre import add_bar_circular_array
+from sectionproperties.pre.library.primitive_sections import rectangular_section, circular_section
 
 ## Define material functions
 
@@ -236,6 +239,55 @@ def concrete_EC2(fck:float)->pd.Series:
     )
     return concrete_serie
 
+def concrete_section (section_type:str,
+                    bar_mat:SteelBar,
+                      concrete_mat:Concrete,
+                      height:Optional[float]=None,
+                      width:Optional[float]=None, 
+                      rect_df:Optional[pd.DataFrame]=None,
+                      circ_diameter:Optional[float]=None,
+                      circ_cover:Optional[float]=None,
+                      circ_n_bars:Optional[float]=None,
+                      circ_d_bars:Optional[float]=None
+                      )->ConcreteSection:
+    """
+    section_type:str,
+    height: rectangula section height,
+    width: rectangular section width, 
+    bar_mat:SteelBar material ,
+    concrete_mat:Concrete material,
+    rect_df: dataframe with rectangular bars information,
+    circ_diameter: diameter of cirular section,
+    circ_cover: cover of circular section,
+    circ_n_bars: number of bars of cirular section,
+    circ_d_bars: diameter of circular bars
+    """
+    #aggiungere df per circular section
+    if section_type == "Rectangular":
+        conc_geom = def_r_geom(height=height,width=width, mat=concrete_mat)
+        bars_serie = rect_df.apply(rect_bar_list,
+                                   axis=1,
+                                   args=(height,width)
+                                )
+    
+        conc_geom = add_bars(bars_df=bars_serie,
+                                     conc_geom=conc_geom,
+                                     mat=bar_mat)
+
+    elif section_type == "Circular":
+        conc_geom = def_c_geom(diameter=circ_diameter, mat=concrete_mat)
+        conc_geom = add_bar_circular_array(
+                        geometry=conc_geom,
+                        area=0.25*np.pi*circ_d_bars**2,
+                        material=bar_mat, 
+                        n_bar=circ_n_bars,
+                        r_array=circ_diameter/2-circ_cover)
+#Define concrete section
+    conc_section = ConcreteSection(conc_geom)
+    return conc_section
+
+
+
 def get_stress_df (CrackedStress:StressResult)->pd.DataFrame:
     """
     returns a dataframe with the coords of the bars and the stresses
@@ -282,6 +334,7 @@ def get_stress_df (CrackedStress:StressResult)->pd.DataFrame:
     df=df.set_index("Bar No.")
 
     return df
+
 
 
 

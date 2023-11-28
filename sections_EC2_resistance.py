@@ -26,7 +26,12 @@ class Column_EC2:
     d:float
     sigma_s:float
 
-    def crack_width(self, cracked_df:pd.DataFrame, kc:float, x_nn:float)-> float:
+    def crack_width_rect(self,
+                    cracked_df:pd.DataFrame, 
+                    rect_df:pd.DataFrame,
+                    kc:float, 
+                    b_eff:float, 
+                    )-> float:
         """
     returns the crack width of a sections
     
@@ -34,7 +39,9 @@ class Column_EC2:
         - All values are in SI units
         - x_nn is the neutral axis depth
         - sigma_s is the maximum tensile stress in the bars
-
-
     """
+        
         h_eff= min(2.5*(self.h-self.d),(self.h-self.x)/3, self.h/2)
+        
+        sigma_s = abs(cracked_df["Stress [MPa]"].min())
+        delta_espsilon = sigma_s

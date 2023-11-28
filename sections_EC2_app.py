@@ -5,16 +5,14 @@ import sections_EC2_module as sm
 from io import BytesIO
 import numpy as np
 import pandas as pd
-## Import analysis section
-from concreteproperties.concrete_section import ConcreteSection
+##Import analysis section
 from concreteproperties.results import MomentInteractionResults, MomentCurvatureResults
-from concreteproperties.pre import add_bar_circular_array
-from sectionproperties.pre.library.primitive_sections import rectangular_section, circular_section
+
 
 st.header("Reinforced Concrete Sections")
 st.subheader(f"Uniaxial bending")
 
-tab1, tab2, tab3, tab4 = st.tabs(["Geometry","M-N Results", "Cracking", "Curvature"])
+tab_geo, tab_mn, tab_cr, tab_cu = st.tabs(["Geometry","M-N Results", "Cracking", "Curvature"])
 
 with st.sidebar:
     side_tab1, side_tab2, side_tab3 ,side_tab4= st.tabs(["Materials","Geometry", "ULS Actions", "SLS Actions"])
@@ -60,6 +58,7 @@ with st.sidebar:
 
 
         st.subheader("Reinforcement Bars")
+
         if section_type == "Rectangular":
             bars_df = pd.DataFrame(
                 [{"Bars diameter [mm]":25, "Number of bars":4, "Cover [mm]":50},
@@ -83,19 +82,18 @@ with st.sidebar:
                                  "Number of bars",
                                  "Cover [mm]",
                                  "Area"]
-            
-        
         elif section_type == "Circular":
             b_diameter= st.number_input("Bars diameter [mm]",value = 25)
             b_nr_bars= st.number_input("Number of bars", value = 10 )
             cover = st.number_input("Cover [mm]", value=50)
+
 
     with side_tab3:
         st.caption("Compression is positive")
         st.caption("Positive moment produces tension on lower side")
 
         columns_actions = ["Load Case","N [kN]", "M [kNm]", "V [kN]" ]
-        rows_actions = [["LC1",-100,1500,300]]
+        rows_actions = [["LC1",-100,900,300]]
         uls_act_df = pd.DataFrame(data=rows_actions, columns=columns_actions)
         edited_uls_act_df= st.data_editor(uls_act_df, num_rows="dynamic")
               
@@ -122,29 +120,24 @@ concrete = sm.create_concrete(fc=concrete_serie.fck,
 steel_rebar=sm.create_steelbar(fy=s_fy,gamma_r=1.15)
 
 #Define concrete geometry
+
 if section_type == "Rectangular":
-    conc_geom = sm.def_r_geom(height=s_h,width=s_b, mat=concrete)
-    bars_serie = modified_df.apply(sm.rect_bar_list,
-                                   axis=1,
-                                   args=(s_h,s_b)
-                                )
-    
-    conc_geom = sm.add_bars(bars_df=bars_serie,
-                                     conc_geom=conc_geom,
-                                     mat=steel_rebar)
-
-
+    conc_section = sm.concrete_section( section_type=section_type,
+                                    height=s_h,
+                                    width=s_b,
+                                    bar_mat=steel_rebar,
+                                    concrete_mat=concrete,
+                                    rect_df=modified_df,
+                                       )
 elif section_type == "Circular":
-    conc_geom = sm.def_c_geom(diameter=s_d, mat=concrete)
-    conc_geom = add_bar_circular_array(
-                    geometry=conc_geom,
-                    area=0.25*np.pi*b_diameter**2,
-                    material=steel_rebar, 
-                    n_bar=b_nr_bars,
-                    r_array=s_d/2-cover)
-
-#Define concrete section
-conc_section = ConcreteSection(conc_geom)
+    conc_section = sm.concrete_section( section_type=section_type,
+                                    bar_mat=steel_rebar,
+                                    concrete_mat=concrete,
+                                    circ_diameter=s_d,
+                                    circ_cover=cover,
+                                    circ_n_bars=b_nr_bars,
+                                    circ_d_bars=b_diameter,
+                                       )
 
 
 #Actions
@@ -184,7 +177,7 @@ m_n_180=conc_section.moment_interaction_diagram(theta=np.pi)
 
 #Tabs display:
 
-with tab1:
+with tab_geo:
     fig = Figure()
     ax = fig.gca()
     ax = conc_section.plot_section()
@@ -195,7 +188,7 @@ with tab1:
     st.image(temp_fig)
 
     
-with tab2:
+with tab_mn:
   
     fig = Figure()
     ax = fig.gca()
@@ -222,7 +215,9 @@ with tab2:
     printed_capacity_df= st.dataframe(capacity_df,use_container_width=True)
 
 
-with tab3:
+with tab_cr:
+    st.caption("Compression stress is positive")
+    
     fig = Figure()
     ax = fig.gca()
     ax = cracked_stress_res.plot_stress()
@@ -238,16 +233,16 @@ with tab3:
 
 
 
-with tab4:
+with tab_cu:
 
     option = st.selectbox(
     'Moment-curvature calculation?',
     ('NO', 'YES'))
     if option == "YES":
-        n_action= st.number_input("ULS Axial force [kN]",value=200.0)
+        n_action= st.number_input("ULS Axial force [kN]",value=200)
         #print Moment curvature
         m_c_0 = conc_section.moment_curvature_analysis(theta=0, n=n_action*1e3)
-        m_c_180 = conc_section.moment_curvature_analysis(theta=np.pi, n=n_action[0]*1e3)
+        m_c_180 = conc_section.moment_curvature_analysis(theta=np.pi, n=n_action*1e3)
 
         fig = Figure()
         ax = fig.gca()
