@@ -209,7 +209,7 @@ with tab_mn:
     fig.savefig(temp_fig, format="png")
     st.image(temp_fig)
 
-    columns_capacity = ["Load Case","Ned [kN]", "Med [kNm]", "Mrd [kN]", "Utilization Level"]
+    columns_capacity = ["Load Case","Ned [kN]", "Med [kNm]", "Mrd [kNm]", "Utilization Level"]
     capacity_df = pd.DataFrame(data=capacity_list, columns=columns_capacity)
     # capacity_df = capacity_df.set_index("Load Case")
     printed_capacity_df= st.dataframe(capacity_df,use_container_width=True)
