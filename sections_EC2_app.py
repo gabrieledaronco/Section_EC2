@@ -14,7 +14,7 @@ from sectionproperties.pre.library.primitive_sections import rectangular_section
 st.header("Reinforced Concrete Sections")
 st.subheader(f"Uniaxial bending")
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["Geometry","M-N Results", "Cracking", "Curvature", "Shear Resistance"])
+tab1, tab2, tab3, tab4 = st.tabs(["Geometry","M-N Results", "Cracking", "Curvature"])
 
 with st.sidebar:
     side_tab1, side_tab2, side_tab3 ,side_tab4= st.tabs(["Materials","Geometry", "ULS Actions", "SLS Actions"])
@@ -235,9 +235,6 @@ with tab3:
     edited_cracked_df = st.dataframe(cracked_df,use_container_width=True)
 
     st.write(f"Depth of neutral axis is equal to {cracked_res.d_nc:.2f} mm")
-
-
-
 
 
 

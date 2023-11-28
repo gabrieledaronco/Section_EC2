@@ -26,7 +26,7 @@ class Column_EC2:
     d:float
     sigma_s:float
 
-    def crack_width(self, kc:float, x_nn:float)-> float:
+    def crack_width(self, cracked_df:pd.DataFrame, kc:float, x_nn:float)-> float:
         """
     returns the crack width of a sections
     
