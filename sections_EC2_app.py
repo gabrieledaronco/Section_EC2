@@ -229,7 +229,7 @@ with tab_cr:
     cracked_df = sm.get_stress_df(cracked_stress_res)
     edited_cracked_df = st.dataframe(cracked_df,use_container_width=True)
 
-    st.write(f"Depth of neutral axis is equal to {cracked_res.d_nc:.2f} mm")
+   # st.write(f"Depth of neutral axis is equal to {cracked_res.d_nc:.2f} mm")
 
 
 
